@@ -1,22 +1,24 @@
 # -*- coding: utf-8 -*-
 
 # libraries
-from bs4            import BeautifulSoup 
-from datetime       import datetime
-
+from bs4 import BeautifulSoup 
+from datetime import datetime
 import re
 import json
-import pandas        as pd
-import requests     
+import pandas as pd
+import requests
+import warnings
+warnings.filterwarnings("ignore")
 
-# generate range of date to consult
-date_range = pd.date_range(pd.datetime.now(), periods=32).strftime( '%Y-%m-%d' ).tolist()
+# generate range of date to consult - 32 days starting from today
+date_range = pd.date_range(pd.datetime.now(), periods=2).strftime( '%Y-%m-%d' ).tolist()
 
+# website path format: https://www.clickbus.com.br/onibus/porto-alegre-rs-todos/ijui-rs?departureDate=2021-08-01
 # parameters
 root = 'https://www.clickbus.com.br/'
 vehicle = 'onibus'
-origin = 'sao-paulo-sp-todos'
-destinations = ['campinas-sp', 'mogi-guacu-sp']
+origin = 'porto-alegre-rs-todos'
+destinations = ['ijui-rs']
 
 df_final = pd.DataFrame()
 for destination in destinations:
@@ -28,14 +30,19 @@ for destination in destinations:
         print( web_address )
 
         # access the link
-        response = requests.get( web_address )
+        response = requests.get(web_address, headers=headers)
+        conteudo = response.json()
+        print(conteudo)
         page = response.text
-        soup = BeautifulSoup( page,"lxml" )
+        print(response.text)
+        soup = BeautifulSoup(page, "html.parser")
+        print(soup)
 
         # get bus lines information & seats available
         date_now = datetime.now().strftime( '%Y-%m-%dT%H:%M:%S' )
-        seats = soup.find_all( class_='available-seats' ) 
-        buslines = soup.find_all( class_="search-item search-item-direct " )
+        seats = soup.find_all(class_='available-seats' ) 
+        print(seats)
+        buslines = soup.find_all(class_="search-item search-item-direct " )
 
         # iterate over bus lines information and seats available
         data_list = list()
@@ -58,6 +65,9 @@ for destination in destinations:
                                                'durationTime', 'company', 'price', 'seats_available', 'timestampScrape'] )
 
     df_final = pd.concat( [df_final, df] )
-
+    
+    
 # save the dataset as a csv file
-df_final.to_csv( 'buslines-at-{}.csv'.format( re.sub( r':', '-', date_now ) ) )
+#df_final.to_csv( 'buslines-at-{}.csv'.format( re.sub( r':', '-', date_now ) ) )
+
+#https://forum.jornalismodedados.org/t/como-raspar-dados-de-uma-consulta-ajax-usando-python/296/2
